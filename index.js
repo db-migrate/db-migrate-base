@@ -50,7 +50,44 @@ module.exports = Base = Class.extend({
     }
   },
 
+  createDatabase: function() {
+
+    throw new Error('not implemented');
+  },
+
+  switchDatabase: function() {
+    throw new Error('not implemented');
+  },
+
+  dropDatabase: function() {
+    throw new Error('not implemented');
+  },
+
+  recurseCallbackArray: function(foreignKeys, callback)
+  {
+    var self = this;
+
+    if (foreignKeys.length > 0)
+      (foreignKeys.pop())(function() { self.recurseCallbackArray(foreignKeys, callback); } );
+    else
+      callback();
+  },
+
+  bindForeignKey: function(tableName, columnName, fkOptions) {
+    var self = this,
+        mapping = {};
+
+    if(typeof(fkOptions.mapping) === 'string')
+      mapping[columnName] = fkOptions.mapping;
+    else
+      mapping = fkOptions.mapping;
+
+    return function (callback) { self.addForeignKey(tableName, fkOptions.table,
+        fkOptions.name, mapping, fkOptions.rules, callback); };
+  },
+
   createColumnDef: function(name, spec, options) {
+    name = '"' + name + '"';
     var type       = this.mapDataType(spec.type);
     var len        = spec.length ? util.format('(%s)', spec.length) : '';
     var constraint = this.createColumnConstraint(spec, options);
@@ -66,7 +103,7 @@ module.exports = Base = Class.extend({
       },
       ifNotExists: true
     };
-    this.createTable('migrations', options, callback);
+    this.createTable(global.migrationTable, options, callback);
   },
 
   createTable: function(tableName, options, callback) {
@@ -100,7 +137,7 @@ module.exports = Base = Class.extend({
 
     var pkSql = '';
     if (primaryKeyColumns.length > 1) {
-      pkSql = util.format(', PRIMARY KEY (%s)', primaryKeyColumns.join(', '));
+      pkSql = util.format(', PRIMARY KEY (%s)', this.quoteArr(primaryKeyColumns).join(', '));
     } else {
       columnDefOptions.emitPrimaryKey = true;
     }
@@ -111,11 +148,12 @@ module.exports = Base = Class.extend({
       columnDefs.push(this.createColumnDef(columnName, columnSpec, columnDefOptions));
     }
 
-    var sql = util.format('CREATE TABLE %s %s (%s%s)', ifNotExistsSql, tableName, columnDefs.join(', '), pkSql);
+    var sql = util.format('CREATE TABLE %s "%s" (%s%s)', ifNotExistsSql, tableName, columnDefs.join(', '), pkSql);
     this.runSql(sql, callback);
   },
 
   dropTable: function(tableName, options, callback) {
+
     if (arguments.length < 3) {
       callback = options;
       options = {};
@@ -125,7 +163,7 @@ module.exports = Base = Class.extend({
     if (options.ifExists) {
       ifExistsSql = 'IF EXISTS';
     }
-    var sql = util.format('DROP TABLE %s %s', ifExistsSql, tableName);
+    var sql = util.format('DROP TABLE %s "%s"', ifExistsSql, tableName);
     this.runSql(sql, callback);
   },
 
@@ -135,7 +173,7 @@ module.exports = Base = Class.extend({
 
   addColumn: function(tableName, columnName, columnSpec, callback) {
     var def = this.createColumnDef(columnName, this.normalizeColumnSpec(columnSpec));
-    var sql = util.format('ALTER TABLE %s ADD COLUMN %s', tableName, def);
+    var sql = util.format('ALTER TABLE "%s" ADD COLUMN %s', tableName, def);
     this.runSql(sql, callback);
   },
 
@@ -151,6 +189,14 @@ module.exports = Base = Class.extend({
     throw new Error('not yet implemented');
   },
 
+  quoteArr: function(arr) {
+
+      for(var i = 0; i < arr.length; ++i)
+        arr[i] = '"' + arr[i] + '"';
+
+      return arr;
+  },
+
   addIndex: function(tableName, indexName, columns, unique, callback) {
     if (typeof(unique) === 'function') {
       callback = unique;
@@ -160,7 +206,9 @@ module.exports = Base = Class.extend({
     if (!Array.isArray(columns)) {
       columns = [columns];
     }
-    var sql = util.format('CREATE %s INDEX %s ON %s (%s)', (unique ? 'UNIQUE' : ''), indexName, tableName, columns.join(', '));
+    var sql = util.format('CREATE %s INDEX "%s" ON "%s" (%s)', (unique ? 'UNIQUE' : ''),
+      indexName, tableName, this.quoteArr(columns).join(', '));
+
     this.runSql(sql, callback);
   },
 
@@ -169,7 +217,7 @@ module.exports = Base = Class.extend({
       return callback(new Error('The number of columns does not match the number of values.'));
     }
 
-    var sql = util.format('INSERT INTO %s ', tableName);
+    var sql = util.format('INSERT INTO "%s" ', tableName);
     var columnNames = '(';
     var values = 'VALUES (';
 
@@ -200,7 +248,7 @@ module.exports = Base = Class.extend({
       indexName = tableName;
     }
 
-    var sql = util.format('DROP INDEX %s', indexName);
+    var sql = util.format('DROP INDEX "%s"', indexName);
     this.runSql(sql, callback);
   },
 
@@ -221,7 +269,7 @@ module.exports = Base = Class.extend({
   },
 
   addMigrationRecord: function (name, callback) {
-    this.runSql('INSERT INTO migrations (name, run_on) VALUES (?, ?)', [name, new Date()], callback);
+    this.runSql('INSERT INTO "' + global.migrationTable + '" (name, run_on) VALUES (?, ?)', [name, new Date()], callback);
   },
 
   startMigration: function(cb){cb();},
@@ -230,6 +278,26 @@ module.exports = Base = Class.extend({
   // sql, callback
   runSql: function() {
     throw new Error('not implemented');
+  },
+
+  /**
+    * Queries the migrations table
+    *
+    * @param callback
+    */
+  allLoadedMigrations: function(callback) {
+    var sql = 'SELECT * FROM "' + global.migrationTable + '" ORDER BY run_on DESC, name DESC';
+    return this.all(sql, callback);
+  },
+
+  /**
+    * Deletes a migration
+    *
+    * @param migrationName   - The name of the migration to be deleted
+    */
+  deleteMigration: function(migrationName, callback) {
+    var sql = 'DELETE FROM "' + global.migrationTable + '" WHERE name = ?';
+    this.runSql(sql, [migrationName], callback);
   },
 
   all: function(sql, params, callback) {
