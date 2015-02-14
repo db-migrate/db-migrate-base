@@ -1,5 +1,8 @@
 var util = require('util');
 var events = require('events');
+var log = global.mod.log;
+var type = global.mod.type;
+var Class = global.mod.Class;
 
 module.exports = Base = Class.extend({
   init: function() {
