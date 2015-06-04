@@ -3,9 +3,15 @@ var events = require('events');
 var log = global.mod.log;
 var type = global.mod.type;
 var Class = global.mod.Class;
+var Promise = require('bluebird');
+
+var internals = {};
 
 module.exports = Base = Class.extend({
-  init: function() {
+  init: function(intern) {
+    this._escapeDDL = this._escapeDDL || '"';
+    this._escapeString = this._escapeString || '"';
+    internals = intern;
     this.eventEmmiter = new events.EventEmitter();
     for(var n in events.EventEmitter.prototype) {
       this[n] = events.EventEmitter.prototype[n];
@@ -53,6 +59,19 @@ module.exports = Base = Class.extend({
     }
   },
 
+  truncate: function(tableName, callback) {
+
+    return this.runSql('TRUNCATE ' + this._escapeDDL  + tableName + this._escapeDDL).nodeify(callback);
+  },
+
+  checkDBMS: function(dbms, callback) {
+
+    if( this.dbms === dbms )
+      return Promise.resolve(dbms).nodeify(callback);
+    else
+      return Promise.reject('dbms does not match');
+  },
+
   createDatabase: function() {
 
     throw new Error('not implemented');
@@ -68,12 +87,13 @@ module.exports = Base = Class.extend({
 
   recurseCallbackArray: function(foreignKeys, callback)
   {
-    var self = this;
+    var self = this, fkFunc,
+        promises = [];
 
-    if (foreignKeys.length > 0)
-      (foreignKeys.pop())(function() { self.recurseCallbackArray(foreignKeys, callback); } );
-    else
-      callback();
+    while((fkFunc = foreignKeys.pop()))
+      promises.push(Promise.resolve(fkFunc()));
+
+    return Promise.all(promises).nodeify(callback);
   },
 
   bindForeignKey: function(tableName, columnName, fkOptions) {
@@ -85,16 +105,26 @@ module.exports = Base = Class.extend({
     else
       mapping = fkOptions.mapping;
 
-    return function (callback) { self.addForeignKey(tableName, fkOptions.table,
-        fkOptions.name, mapping, fkOptions.rules, callback); };
+    return function (callback) {
+
+      if (typeof(callback) === 'function')
+        self.addForeignKey(tableName, fkOptions.table,
+          fkOptions.name, mapping, fkOptions.rules, callback);
+      else
+        return self.addForeignKey(tableName, fkOptions.table,
+          fkOptions.name, mapping, fkOptions.rules);
+
+    };
   },
 
   createColumnDef: function(name, spec, options) {
-    name = '"' + name + '"';
+    name = this._escapeDDL + name + this._escapeDDL;
     var type       = this.mapDataType(spec.type);
     var len        = spec.length ? util.format('(%s)', spec.length) : '';
     var constraint = this.createColumnConstraint(spec, options);
-    return [name, type, len, constraint].join(' ');
+
+    return { foreignKey: null,
+                 constraints: [name, type, len, constraint].join(' ') };
   },
 
   createMigrationsTable: function(callback) {
@@ -106,7 +136,19 @@ module.exports = Base = Class.extend({
       },
       ifNotExists: true
     };
-    this.createTable(global.migrationTable, options, callback);
+    this.createTable(internals.migrationTable, options, callback);
+  },
+
+  createSeedsTable: function(callback) {
+    var options = {
+      columns: {
+        'id': { type: type.INTEGER, notNull: true, primaryKey: true, autoIncrement: true },
+        'name': { type: type.STRING, length: 255, notNull: true},
+        'run_on': { type: type.DATE_TIME, notNull: true}
+      },
+      ifNotExists: true
+    };
+    this.createTable(internals.seedTable, options, callback);
   },
 
   createTable: function(tableName, options, callback) {
@@ -140,19 +182,30 @@ module.exports = Base = Class.extend({
 
     var pkSql = '';
     if (primaryKeyColumns.length > 1) {
-      pkSql = util.format(', PRIMARY KEY (%s)', this.quoteArr(primaryKeyColumns).join(', '));
+      pkSql = util.format(', PRIMARY KEY (%s)', this.quoteDDLArr(primaryKeyColumns).join(', '));
     } else {
       columnDefOptions.emitPrimaryKey = true;
     }
 
     var columnDefs = [];
+    var foreignKeys = [];
+
     for (var columnName in columnSpecs) {
       var columnSpec = columnSpecs[columnName];
-      columnDefs.push(this.createColumnDef(columnName, columnSpec, columnDefOptions));
+      var constraint = this.createColumnDef(columnName, columnSpec, columnDefOptions, tableName);
+
+      columnDefs.push(constraint.constraints);
+      if (constraint.foreignKey)
+        foreignKeys.push(constraint.foreignKey);
     }
 
     var sql = util.format('CREATE TABLE %s "%s" (%s%s)', ifNotExistsSql, tableName, columnDefs.join(', '), pkSql);
-    this.runSql(sql, callback);
+
+    return this.runSql(sql)
+    .then(function()
+    {
+        return this.recurseCallbackArray(foreignKeys);
+    }.bind(this)).nodeify(callback);
   },
 
   dropTable: function(tableName, options, callback) {
@@ -167,7 +220,8 @@ module.exports = Base = Class.extend({
       ifExistsSql = 'IF EXISTS';
     }
     var sql = util.format('DROP TABLE %s "%s"', ifExistsSql, tableName);
-    this.runSql(sql, callback);
+
+    return this.runSql(sql).nodeify(callback);
   },
 
   renameTable: function(tableName, newTableName, callback) {
@@ -175,9 +229,18 @@ module.exports = Base = Class.extend({
   },
 
   addColumn: function(tableName, columnName, columnSpec, callback) {
-    var def = this.createColumnDef(columnName, this.normalizeColumnSpec(columnSpec));
-    var sql = util.format('ALTER TABLE "%s" ADD COLUMN %s', tableName, def);
-    this.runSql(sql, callback);
+
+    var def = this.createColumnDef(columnName, this.normalizeColumnSpec(columnSpec), {}, tableName);
+    var sql = util.format('ALTER TABLE "%s" ADD COLUMN %s', tableName, def.constraints);
+
+    return this.runSql(sql)
+    .then(function()
+    {
+      if(def.foreignKey)
+        return def.foreignKey();
+      else
+        return Promise.resolve();
+    }).nodeify(callback);
   },
 
   removeColumn: function(tableName, columnName, callback) {
@@ -192,10 +255,18 @@ module.exports = Base = Class.extend({
     throw new Error('not yet implemented');
   },
 
+  quoteDDLArr: function(arr) {
+
+      for(var i = 0; i < arr.length; ++i)
+        arr[i] = this._escapeDDL  + arr[i] + this._escapeDDL;
+
+      return arr;
+  },
+
   quoteArr: function(arr) {
 
       for(var i = 0; i < arr.length; ++i)
-        arr[i] = '"' + arr[i] + '"';
+        arr[i] = this._escapeString  + arr[i] + this._escapeString;
 
       return arr;
   },
@@ -210,9 +281,9 @@ module.exports = Base = Class.extend({
       columns = [columns];
     }
     var sql = util.format('CREATE %s INDEX "%s" ON "%s" (%s)', (unique ? 'UNIQUE' : ''),
-      indexName, tableName, this.quoteArr(columns).join(', '));
+      indexName, tableName, this.quoteDDLArr(columns).join(', '));
 
-    this.runSql(sql, callback);
+    return this.runSql(sql).nodeify(callback);
   },
 
   insert: function(tableName, columnNameArray, valueArray, callback) {
@@ -240,7 +311,7 @@ module.exports = Base = Class.extend({
     }
 
     sql += columnNames + ') '+ values + ');';
-    this.runSql(sql, callback);
+    return this.runSql(sql).nodeify(callback);
   },
 
   removeIndex: function(tableName, indexName, callback) {
@@ -252,7 +323,7 @@ module.exports = Base = Class.extend({
     }
 
     var sql = util.format('DROP INDEX "%s"', indexName);
-    this.runSql(sql, callback);
+    return this.runSql(sql).nodeify(callback);
   },
 
   addForeignKey: function() {
@@ -272,11 +343,15 @@ module.exports = Base = Class.extend({
   },
 
   addMigrationRecord: function (name, callback) {
-    this.runSql('INSERT INTO "' + global.migrationTable + '" (name, run_on) VALUES (?, ?)', [name, new Date()], callback);
+    this.runSql('INSERT INTO "' + internals.migrationTable + '" (name, run_on) VALUES (?, ?)', [name, new Date()], callback);
   },
 
-  startMigration: function(cb){cb();},
-  endMigration: function(cb){cb();},
+  addSeedRecord: function (name, callback) {
+    this.runSql('INSERT INTO "' + internals.seedTable + '" (name, run_on) VALUES (?, ?)', [name, new Date()], callback);
+  },
+
+  startMigration: function(cb){ return Promise.resolve().nodeify(cb); },
+  endMigration: function(cb){ return Promise.resolve().nodeify(cb); },
   // sql, params, callback
   // sql, callback
   runSql: function() {
@@ -289,7 +364,17 @@ module.exports = Base = Class.extend({
     * @param callback
     */
   allLoadedMigrations: function(callback) {
-    var sql = 'SELECT * FROM "' + global.migrationTable + '" ORDER BY run_on DESC, name DESC';
+    var sql = 'SELECT * FROM ' + this._escapeDDL + internals.migrationTable + this._escapeDDL + ' ORDER BY run_on DESC, name DESC';
+    return this.all(sql, callback);
+  },
+
+  /**
+    * Queries the seeds table
+    *
+    * @param callback
+    */
+  allLoadedSeeds: function(callback) {
+    var sql = 'SELECT * FROM ' + this._escapeDDL + internals.seedTable + this._escapeDDL + ' ORDER BY run_on DESC, name DESC';
     return this.all(sql, callback);
   },
 
@@ -299,8 +384,116 @@ module.exports = Base = Class.extend({
     * @param migrationName   - The name of the migration to be deleted
     */
   deleteMigration: function(migrationName, callback) {
-    var sql = 'DELETE FROM "' + global.migrationTable + '" WHERE name = ?';
+    var sql = 'DELETE FROM ' + this._escapeDDL + internals.migrationTable + this._escapeDDL + ' WHERE name = ?';
     this.runSql(sql, [migrationName], callback);
+  },
+
+  /**
+    * Removes the specified keys from the database
+    *
+    * @param table - The table in which the to be deleted values are located
+    * @param ids - array or object
+    * id array  - arrayof the to be deleted ids
+    * id object - { table: "name of the table to resolve the ids from",
+    *               column: [
+    *               {
+    *                 name: "name of column", //defaults to id if unset
+    *                 operator: ">", //defaults to = if unset
+    *                 searchValue: "12",
+    *                 searchValue: { table: "source", column: [...] },
+    *                 //recursion with objects possible
+    *                 link: "AND" //defaults to AND if unset
+    *               }
+    *               ]
+    *             }
+    *
+    * @return Promise(runSql)
+    */
+  remove: function(table, ids, callback) {
+
+    var sql = 'DELETE FROM ' + this._escapeDDL + table + + this._escapeDDL;
+    var searchClause = '';
+
+    return this.runSql(sql + buildWhereClause(ids)).nodeify(callback);
+  },
+
+  /**
+    * Builds a where clause out of column objects.
+    *
+    * @param ids - array or object
+    * id array  - arrayof the to be deleted ids
+    * id object - { table: "name of the table to resolve the ids from",
+    *               column: [
+    *               {
+    *                 name: "name of column", //defaults to id if unset
+    *                 operator: ">", //defaults to = if unset
+    *                 searchValue: "12",
+    *                 searchValue: { table: "source", column: [...] },
+    *                 //recursion with objects possible
+    *                 link: "AND" //defaults to AND if unset
+    *               }
+    *               ]
+    *             }
+    *
+    * @return string
+    */
+  buildWhereClause: function(ids) {
+
+    var searchClause = '';
+
+    if (util.isArray(ids) && typeof(ids[0]) !== 'object') {
+
+        sql += 'WHERE id IN (' + ids.join(this._escapeString + ',' + this._escapeString) + ')';
+    }
+    else if (util.isArray(ids) && typeof(ids[0]) === 'object'){
+
+
+        var preLink = ''
+        searchClause = ' WHERE ';
+
+        for (var column in ids) {
+            column.name = column.name || 'id',
+            column.operator = column.operator || '=',
+            column.link = column.link || 'AND';
+
+            if (!column.searchValue) {
+
+                return Promise.reject('column ' + column.name + ' was entered without a searchValue.');
+            }
+
+            searchClause += ' ' + preLink + ' ' + this._escapeDDL  +
+              column.name + this._escapeDDL + ' ' + column.operator;
+
+            if (typeof(searchValue) === 'object' &&
+                typeof(searchValue.table) === 'string' &&
+                typeof(searchValue.columns) === 'object') {
+
+                searchClause += ' (SELECT ' + this._escapeDDL + column.selector +
+                    this._escapeDDL + ' FROM ' + this._escapeDDL +
+                    column.searchValue.table + this._escapeDDL +
+                    buildWhereClause(column.searchValue.column) + ')';
+            }
+            else {
+
+              searchClause += ' (' + this._escapeString  + column.searchValue + this._escapeString + ')';
+            }
+
+            preLink = column.link;
+        }
+    }
+
+    return searchClause;
+  },
+
+
+  /**
+    * Deletes a seed
+    *
+    * @param seedName   - The name of the seed to be deleted
+    */
+  deleteSeed: function(seedName, callback) {
+    var sql = 'DELETE FROM ' + this._escapeDDL + internals.seedTable + this._escapeDDL + ' WHERE name = ?';
+    this.runSql(sql, [seedName], callback);
   },
 
   all: function(sql, params, callback) {
@@ -311,3 +504,5 @@ module.exports = Base = Class.extend({
     return str.replace(/'/g, "''");
   }
 });
+
+Promise.promisifyAll(Base);
