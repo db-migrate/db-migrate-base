@@ -1,8 +1,8 @@
 var util = require('util');
 var events = require('events');
-var log = global.mod.log;
-var type = global.mod.type;
-var Class = global.mod.Class;
+var log;
+var type;
+var Class;
 var Promise = require('bluebird');
 
 var internals = {};
@@ -10,8 +10,14 @@ var internals = {};
 module.exports = Base = Class.extend({
   init: function(intern) {
     this._escapeDDL = this._escapeDDL || '"';
-    this._escapeString = this._escapeString || '"';
+    this._escapeString = this._escapeString || '\'';
     internals = intern;
+    this.internals = intern;
+
+    log = this.internals.mod.log;
+    type = this.internals.mod.type;
+    Class = this.internals.mod.Class;
+
     this.eventEmmiter = new events.EventEmitter();
     for(var n in events.EventEmitter.prototype) {
       this[n] = events.EventEmitter.prototype[n];
@@ -182,7 +188,9 @@ module.exports = Base = Class.extend({
 
     var pkSql = '';
     if (primaryKeyColumns.length > 1) {
-      pkSql = util.format(', PRIMARY KEY (%s)', this.quoteDDLArr(primaryKeyColumns).join(', '));
+      pkSql = util.format(', PRIMARY KEY (%s)',
+        this.quoteDDLArr(primaryKeyColumns).join(', '));
+
     } else {
       columnDefOptions.emitPrimaryKey = true;
     }
@@ -199,7 +207,8 @@ module.exports = Base = Class.extend({
         foreignKeys.push(constraint.foreignKey);
     }
 
-    var sql = util.format('CREATE TABLE %s "%s" (%s%s)', ifNotExistsSql, tableName, columnDefs.join(', '), pkSql);
+    var sql = util.format('CREATE TABLE %s %s (%s%s)', ifNotExistsSql,
+      this.escapeDDL(tableName), columnDefs.join(', '), pkSql);
 
     return this.runSql(sql)
     .then(function()
@@ -219,7 +228,8 @@ module.exports = Base = Class.extend({
     if (options.ifExists) {
       ifExistsSql = 'IF EXISTS';
     }
-    var sql = util.format('DROP TABLE %s "%s"', ifExistsSql, tableName);
+    var sql = util.format('DROP TABLE %s %s', ifExistsSql,
+      this.escapeDDL(tableName));
 
     return this.runSql(sql).nodeify(callback);
   },
@@ -230,8 +240,10 @@ module.exports = Base = Class.extend({
 
   addColumn: function(tableName, columnName, columnSpec, callback) {
 
-    var def = this.createColumnDef(columnName, this.normalizeColumnSpec(columnSpec), {}, tableName);
-    var sql = util.format('ALTER TABLE "%s" ADD COLUMN %s', tableName, def.constraints);
+    var def = this.createColumnDef(columnName,
+      this.normalizeColumnSpec(columnSpec), {}, tableName);
+    var sql = util.format('ALTER TABLE %s ADD COLUMN %s',
+      this.escapeDDL(tableName), def.constraints);
 
     return this.runSql(sql)
     .then(function()
@@ -286,32 +298,128 @@ module.exports = Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  insert: function(tableName, columnNameArray, valueArray, callback) {
+  insert: function(tableName, valueArray, callback) {
+
+    var columnNameArray = {};
+
+    if( arguments.length > 3 ) {
+
+      log.warn( 'This calling convention of insert is deprecated' );
+      columnNameArray = valueArray;
+      valueArray = callback;
+      callback = arguments[3];
+    }
+    else {
+
+      var names;
+      if( util.isArray(valueArray) ) {
+        names = Object.keys(valueArray[0]);
+      }
+      else {
+        names  = Object.keys(valueArray);
+      }
+
+      for( var i = 0; i < names.length; ++i ) {
+
+        columnNameArray[names[i]] = names[i];
+      }
+    }
+
     if (columnNameArray.length !== valueArray.length) {
       return callback(new Error('The number of columns does not match the number of values.'));
     }
 
-    var sql = util.format('INSERT INTO "%s" ', tableName);
+    var sql = util.format('INSERT INTO %s ', this.escapeDDL(tableName));
     var columnNames = '(';
-    var values = 'VALUES (';
+    var values = 'VALUES ';
+    var values_part = [];
 
     for (var index in columnNameArray) {
-      columnNames += columnNameArray[index];
+      columnNames += this.escapeDDL(columnNameArray[index]);
+
+      if( util.isArray(valueArray) && typeof(valueArray[0]) === 'object') {
+
+        for( var i = 0; i < valueArray.length; ++i ) {
+
+          values_part[i] = values_part[i] || '';
+
+          if (typeof(valueArray[i][index]) === 'string') {
+            values_part[i] += this.escapeString(valueArray[i][index]);
+          } else {
+            values_part[i] += valueArray[i][index];
+          }
+        }
+      }
+      else {
+
+        if (typeof(valueArray[index]) === 'string') {
+          values_part += this.escapeString(valueArray[index]);
+        } else {
+          values_part += valueArray[index];
+        }
+
+        values_part +=  ",";
+      }
+
+      columnNames += ",";
+    }
+
+
+    if( util.isArray(valueArray) && typeof(valueArray[0]) === 'object' ) {
+
+      for( var i = 0; i < values_part.length; ++i ) {
+
+        values += '(' + values_part[i].slice(0, -1) + '),';
+      }
+
+      values = values.slice(0, -1);
+    }
+    else {
+
+      values += '(' + values_part.slice(0, -1) + ')';
+    }
+
+    sql += columnNames.slice(0, -1) + ') ' +
+      values + ';';
+
+    return this.runSql(sql).nodeify(callback);
+  },
+
+  update: function(tableName, columnNameArray, valueArray, ids, callback) {
+
+    if (columnNameArray.length !== valueArray.length) {
+      return callback(new Error('The number of columns does not match the number of values.'));
+    }
+
+    var sql = util.format('UPDATE ' + this._escapeDDL + '%s' + this._escapeDDL + ' SET ', tableName );
+
+    for (var index in columnNameArray) {
+      sql += columnNameArray[index] + '=';
 
       if (typeof(valueArray[index]) === 'string') {
-        values += "'" + this.escape(valueArray[index]) + "'";
+        sql += this._escapeString + this.escape(valueArray[index]) + this._escapeString;
       } else {
-        values += valueArray[index];
+        sql += valueArray[index];
       }
 
       if (index != columnNameArray.length - 1) {
-       columnNames += ",";
-       values +=  ",";
+       sql += ", ";
       }
     }
 
-    sql += columnNames + ') '+ values + ');';
+    sql += ' ' + buildWhereClause(ids);
     return this.runSql(sql).nodeify(callback);
+  },
+
+  lookup: function(tableName, column, id, callback) {
+
+    var sql = 'SELECT ' + this.escapeDDL(column) + ' FROM ' +
+      this.escapeDDL(tableName) + ' ' + buildWhereClause(id);
+
+    return this.runSql(sql)
+    .then(function(row) {
+      return row[0];
+    });
   },
 
   removeIndex: function(tableName, indexName, callback) {
@@ -343,11 +451,15 @@ module.exports = Base = Class.extend({
   },
 
   addMigrationRecord: function (name, callback) {
-    this.runSql('INSERT INTO "' + internals.migrationTable + '" (name, run_on) VALUES (?, ?)', [name, new Date()], callback);
+    this.runSql('INSERT INTO ' + this.escapeDDL(internals.migrationTable) +
+      ' (' + this.escapeDDL('name') + ', ' + this.escapeDDL('run_on') +
+      ') VALUES (?, ?)', [name, new Date()], callback);
   },
 
   addSeedRecord: function (name, callback) {
-    this.runSql('INSERT INTO "' + internals.seedTable + '" (name, run_on) VALUES (?, ?)', [name, new Date()], callback);
+    this.runSql('INSERT INTO ' + this.escapeDDL(internals.seedTable) +
+    ' (' + this.escapeDDL('name') + ', ' + this.escapeDDL('run_on') +
+    ') VALUES (?, ?)', [name, new Date()], callback);
   },
 
   startMigration: function(cb){ return Promise.resolve().nodeify(cb); },
@@ -441,9 +553,13 @@ module.exports = Base = Class.extend({
 
     var searchClause = '';
 
-    if (util.isArray(ids) && typeof(ids[0]) !== 'object') {
+    if (util.isArray(ids) && typeof(ids[0]) !== 'object' && ids.length > 1) {
 
-        sql += 'WHERE id IN (' + ids.join(this._escapeString + ',' + this._escapeString) + ')';
+        searchClause += 'WHERE id IN (' + ids.join(this._escapeString + ',' + this._escapeString) + ')';
+    }
+    else if(typeof(ids) === 'string' || ids.length === 1) {
+        var id = (util.isArray(ids)) ? ids[0] : ids;
+        searchClause += 'WHERE id = ' + id;
     }
     else if (util.isArray(ids) && typeof(ids[0]) === 'object'){
 
@@ -501,7 +617,20 @@ module.exports = Base = Class.extend({
   },
 
   escape: function(str) {
-    return str.replace(/'/g, "''");
+    if(this._escapeString === '\'')
+      return str.replace(/'/g, "''");
+    else
+      return str.replace(/"/g, '"');
+  },
+
+  escapeString: function(str) {
+
+    return this._escapeString + this.escape(str) + this._escapeString;
+  },
+
+  escapeDDL: function(str) {
+
+    return this._escapeDDL + str + this._escapeDDL;
   }
 });
 
