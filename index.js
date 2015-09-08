@@ -142,7 +142,7 @@ module.exports = Base = Class.extend({
       },
       ifNotExists: true
     };
-    this.createTable(internals.migrationTable, options, callback);
+    this.createTable(this.internals.migrationTable, options, callback);
   },
 
   createSeedsTable: function(callback) {
@@ -154,7 +154,7 @@ module.exports = Base = Class.extend({
       },
       ifNotExists: true
     };
-    this.createTable(internals.seedTable, options, callback);
+    this.createTable(this.internals.seedTable, options, callback);
   },
 
   createTable: function(tableName, options, callback) {
@@ -451,13 +451,13 @@ module.exports = Base = Class.extend({
   },
 
   addMigrationRecord: function (name, callback) {
-    this.runSql('INSERT INTO ' + this.escapeDDL(internals.migrationTable) +
+    this.runSql('INSERT INTO ' + this.escapeDDL(this.internals.migrationTable) +
       ' (' + this.escapeDDL('name') + ', ' + this.escapeDDL('run_on') +
       ') VALUES (?, ?)', [name, new Date()], callback);
   },
 
   addSeedRecord: function (name, callback) {
-    this.runSql('INSERT INTO ' + this.escapeDDL(internals.seedTable) +
+    this.runSql('INSERT INTO ' + this.escapeDDL(this.internals.seedTable) +
     ' (' + this.escapeDDL('name') + ', ' + this.escapeDDL('run_on') +
     ') VALUES (?, ?)', [name, new Date()], callback);
   },
@@ -476,7 +476,7 @@ module.exports = Base = Class.extend({
     * @param callback
     */
   allLoadedMigrations: function(callback) {
-    var sql = 'SELECT * FROM ' + this._escapeDDL + internals.migrationTable + this._escapeDDL + ' ORDER BY run_on DESC, name DESC';
+    var sql = 'SELECT * FROM ' + this._escapeDDL + this.internals.migrationTable + this._escapeDDL + ' ORDER BY run_on DESC, name DESC';
     return this.all(sql, callback);
   },
 
@@ -486,7 +486,7 @@ module.exports = Base = Class.extend({
     * @param callback
     */
   allLoadedSeeds: function(callback) {
-    var sql = 'SELECT * FROM ' + this._escapeDDL + internals.seedTable + this._escapeDDL + ' ORDER BY run_on DESC, name DESC';
+    var sql = 'SELECT * FROM ' + this._escapeDDL + this.internals.seedTable + this._escapeDDL + ' ORDER BY run_on DESC, name DESC';
     return this.all(sql, callback);
   },
 
@@ -496,7 +496,7 @@ module.exports = Base = Class.extend({
     * @param migrationName   - The name of the migration to be deleted
     */
   deleteMigration: function(migrationName, callback) {
-    var sql = 'DELETE FROM ' + this._escapeDDL + internals.migrationTable + this._escapeDDL + ' WHERE name = ?';
+    var sql = 'DELETE FROM ' + this._escapeDDL + this.internals.migrationTable + this._escapeDDL + ' WHERE name = ?';
     this.runSql(sql, [migrationName], callback);
   },
 
@@ -608,7 +608,7 @@ module.exports = Base = Class.extend({
     * @param seedName   - The name of the seed to be deleted
     */
   deleteSeed: function(seedName, callback) {
-    var sql = 'DELETE FROM ' + this._escapeDDL + internals.seedTable + this._escapeDDL + ' WHERE name = ?';
+    var sql = 'DELETE FROM ' + this._escapeDDL + this.internals.seedTable + this._escapeDDL + ' WHERE name = ?';
     this.runSql(sql, [seedName], callback);
   },
 
