@@ -2,7 +2,7 @@ var util = require('util');
 var events = require('events');
 var log;
 var type;
-var Class;
+var Class = require('./class.js');
 var Promise = require('bluebird');
 
 var internals = {};
@@ -11,12 +11,12 @@ module.exports = Base = Class.extend({
   init: function(intern) {
     this._escapeDDL = this._escapeDDL || '"';
     this._escapeString = this._escapeString || '\'';
+
     internals = intern;
     this.internals = intern;
 
     log = this.internals.mod.log;
     type = this.internals.mod.type;
-    Class = this.internals.mod.Class;
 
     this.eventEmmiter = new events.EventEmitter();
     for(var n in events.EventEmitter.prototype) {
