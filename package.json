@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/db-migrate/db-migrate-base/issues"
   },
-  "homepage": "https://github.com/db-migrate/db-migrate-base"
+  "homepage": "https://github.com/db-migrate/db-migrate-base",
+  "dependencies": {
+    "bluebird": "^2.9.34"
+  }
 }
