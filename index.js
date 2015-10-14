@@ -304,7 +304,6 @@ module.exports = Base = Class.extend({
 
     if( arguments.length > 3 ) {
 
-      log.warn( 'This calling convention of insert is deprecated' );
       columnNameArray = valueArray;
       valueArray = callback;
       callback = arguments[3];
@@ -385,9 +384,10 @@ module.exports = Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  update: function(tableName, columnNameArray, valueArray, ids, callback) {
+  update: function(tableName, valueArray, ids, callback) {
 
     if (columnNameArray.length !== valueArray.length) {
+
       return callback(new Error('The number of columns does not match the number of values.'));
     }
 
