@@ -386,9 +386,31 @@ module.exports = Base = Class.extend({
 
   update: function(tableName, valueArray, ids, callback) {
 
-    if (columnNameArray.length !== valueArray.length) {
+    var columnNameArray = {};
+
+    if ( arguments > 4 && arguments[1].length !== arguments[2].length) {
 
       return callback(new Error('The number of columns does not match the number of values.'));
+    } else if ( arguments > 4 ) {
+
+      columnNameArray = valueArray;
+      valueArray = ids;
+      ids = callback;
+      callback = arguments[4];
+    }
+    else {
+      var names;
+      if( util.isArray(valueArray) ) {
+        names = Object.keys(valueArray[0]);
+      }
+      else {
+        names  = Object.keys(valueArray);
+      }
+
+      for( var i = 0; i < names.length; ++i ) {
+
+        columnNameArray[names[i]] = names[i];
+      }
     }
 
     var sql = util.format('UPDATE ' + this._escapeDDL + '%s' + this._escapeDDL + ' SET ', tableName );
@@ -407,14 +429,14 @@ module.exports = Base = Class.extend({
       }
     }
 
-    sql += ' ' + buildWhereClause(ids);
+    sql = sql.substring( 0, sql.length - 2 ) + ' ' + this.buildWhereClause(ids);
     return this.runSql(sql).nodeify(callback);
   },
 
   lookup: function(tableName, column, id, callback) {
 
     var sql = 'SELECT ' + this.escapeDDL(column) + ' FROM ' +
-      this.escapeDDL(tableName) + ' ' + buildWhereClause(id);
+      this.escapeDDL(tableName) + ' ' + this.buildWhereClause(id);
 
     return this.runSql(sql)
     .then(function(row) {
@@ -526,7 +548,7 @@ module.exports = Base = Class.extend({
     var sql = 'DELETE FROM ' + this._escapeDDL + table + + this._escapeDDL;
     var searchClause = '';
 
-    return this.runSql(sql + buildWhereClause(ids)).nodeify(callback);
+    return this.runSql(sql + this.buildWhereClause(ids)).nodeify(callback);
   },
 
   /**
@@ -557,9 +579,11 @@ module.exports = Base = Class.extend({
 
         searchClause += 'WHERE id IN (' + ids.join(this._escapeString + ',' + this._escapeString) + ')';
     }
-    else if(typeof(ids) === 'string' || ids.length === 1) {
+    else if(typeof(ids) === 'string' || ids.length === 1 ||
+            typeof(ids) === 'number') {
         var id = (util.isArray(ids)) ? ids[0] : ids;
-        searchClause += 'WHERE id = ' + id;
+        searchClause += 'WHERE id = ' + this._escapeString + id +
+          this._escapeString;
     }
     else if (util.isArray(ids) && typeof(ids[0]) === 'object'){
 
@@ -568,13 +592,30 @@ module.exports = Base = Class.extend({
         searchClause = ' WHERE ';
 
         for (var column in ids) {
+
+          var columnKeys = Object.keys(ids[column]);
+
+            if ( columnKeys.length === 1 ) {
+
+              var _column = {
+                name: columnKeys[0],
+                value: ids[column][columnKeys[0]]
+              };
+
+              column = _column;
+            }
+            else {
+              column = ids[column];
+            }
+
             column.name = column.name || 'id',
             column.operator = column.operator || '=',
             column.link = column.link || 'AND';
 
-            if (!column.searchValue) {
+            if (!column.value) {
 
-                return Promise.reject('column ' + column.name + ' was entered without a searchValue.');
+                return Promise.reject('column ' + column.name +
+                  ' was entered without a search value.');
             }
 
             searchClause += ' ' + preLink + ' ' + this._escapeDDL  +
@@ -584,18 +625,32 @@ module.exports = Base = Class.extend({
                 typeof(searchValue.table) === 'string' &&
                 typeof(searchValue.columns) === 'object') {
 
-                searchClause += ' (SELECT ' + this._escapeDDL + column.selector +
-                    this._escapeDDL + ' FROM ' + this._escapeDDL +
-                    column.searchValue.table + this._escapeDDL +
-                    buildWhereClause(column.searchValue.column) + ')';
+                searchClause += ' (SELECT ' + this._escapeDDL +
+                  column.selector + this._escapeDDL + ' FROM ' +
+                  this._escapeDDL + column.searchValue.table + this._escapeDDL +
+                  this.buildWhereClause(column.searchValue.column) + ')';
             }
             else {
 
-              searchClause += ' (' + this._escapeString  + column.searchValue + this._escapeString + ')';
+              searchClause += ' (' + this._escapeString  + column.value +
+                this._escapeString + ')';
             }
 
             preLink = column.link;
         }
+    }
+    else if( typeof(ids) === 'object' ) {
+
+      var key = Object.keys( ids );
+      var preLink = '';
+      searchClause += 'WHERE ';
+
+      for( var i = 0; i < key.length; ++i ) {
+
+        searchClause += preLink + this._escapeDDL + key[i] + this._escapeDDL +
+          ' = ' + this._escapeString + ids[key[i]] + this._escapeString;
+        preLink = ' AND ';
+      }
     }
 
     return searchClause;
