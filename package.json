@@ -26,6 +26,6 @@
   },
   "homepage": "https://github.com/db-migrate/db-migrate-base",
   "dependencies": {
-    "bluebird": "^2.9.34"
+    "bluebird": "^3.1.1"
   }
 }
