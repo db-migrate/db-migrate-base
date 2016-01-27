@@ -219,7 +219,7 @@ module.exports = Base = Class.extend({
 
   dropTable: function(tableName, options, callback) {
 
-    if (arguments.length < 3) {
+    if (arguments.length < 3 && typeof(options) === 'function') {
       callback = options;
       options = {};
     }
