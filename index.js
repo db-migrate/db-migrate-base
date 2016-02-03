@@ -223,6 +223,10 @@ module.exports = Base = Class.extend({
       callback = options;
       options = {};
     }
+    else {
+      
+      options = options || {};
+    }
 
     var ifExistsSql = '';
     if (options.ifExists) {
