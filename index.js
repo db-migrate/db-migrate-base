@@ -7,7 +7,7 @@ var Promise = require('bluebird');
 
 var internals = {};
 
-module.exports = Base = Class.extend({
+var Base = Class.extend({
   init: function(intern) {
     this._escapeDDL = this._escapeDDL || '"';
     this._escapeString = this._escapeString || '\'';
@@ -224,7 +224,7 @@ module.exports = Base = Class.extend({
       options = {};
     }
     else {
-      
+
       options = options || {};
     }
 
@@ -694,3 +694,5 @@ module.exports = Base = Class.extend({
 });
 
 Promise.promisifyAll(Base);
+
+module.exports = Base;
