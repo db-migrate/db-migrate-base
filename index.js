@@ -25,7 +25,7 @@ var Base = Class.extend({
   },
 
   close: function() {
-    throw new Error('not yet implemented');
+    throw new Error('not implemented');
   },
 
   mapDataType: function(str) {
@@ -80,6 +80,10 @@ var Base = Class.extend({
 
   createDatabase: function() {
 
+    throw new Error('not implemented');
+  },
+
+  showDatabase: function () {
     throw new Error('not implemented');
   },
 
@@ -239,7 +243,7 @@ var Base = Class.extend({
   },
 
   renameTable: function(tableName, newTableName, callback) {
-    throw new Error('not yet implemented');
+    throw new Error('not implemented');
   },
 
   addColumn: function(tableName, columnName, columnSpec, callback) {
@@ -260,15 +264,15 @@ var Base = Class.extend({
   },
 
   removeColumn: function(tableName, columnName, callback) {
-    throw new Error('not yet implemented');
+    throw new Error('not implemented');
   },
 
   renameColumn: function(tableName, oldColumnName, newColumnName, callback) {
-    throw new Error('not yet implemented');
+    throw new Error('not implemented');
   },
 
   changeColumn: function(tableName, columnName, columnSpec, callback) {
-    throw new Error('not yet implemented');
+    throw new Error('not implemented');
   },
 
   quoteDDLArr: function(arr) {
