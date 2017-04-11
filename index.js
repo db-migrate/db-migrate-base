@@ -196,15 +196,21 @@ var Base = Class.extend({
     }
 
     var columnDefs = [];
-    var foreignKeys = [];
+    var callbacks = [];
 
     for (var columnName in columnSpecs) {
       var columnSpec = columnSpecs[columnName];
       var constraint = this.createColumnDef(columnName, columnSpec, columnDefOptions, tableName);
 
       columnDefs.push(constraint.constraints);
+
+      // check foreignKey for backward compatiable
       if (constraint.foreignKey)
-        foreignKeys.push(constraint.foreignKey);
+        callbacks.push(constraint.foreignKey);
+      if (constraint.callbacks) {
+        // support multiple callbacks
+        callbacks = callbacks.concat(constraint.callbacks)
+      }
     }
 
     var sql = util.format('CREATE TABLE %s %s (%s%s)', ifNotExistsSql,
@@ -213,7 +219,7 @@ var Base = Class.extend({
     return this.runSql(sql)
     .then(function()
     {
-        return this.recurseCallbackArray(foreignKeys);
+        return this.recurseCallbackArray(callbacks);
     }.bind(this)).nodeify(callback);
   },
 
@@ -252,11 +258,11 @@ var Base = Class.extend({
     return this.runSql(sql)
     .then(function()
     {
+      var callbacks = def.callbacks ? def.callbacks : []
       if(def.foreignKey)
-        return def.foreignKey();
-      else
-        return Promise.resolve();
-    }).nodeify(callback);
+        callbacks.push(def.foreignKey)
+      return this.recurseCallbackArray(callbacks);
+    }.bind(this)).nodeify(callback);
   },
 
   removeColumn: function(tableName, columnName, callback) {
@@ -459,7 +465,6 @@ var Base = Class.extend({
     var sql = util.format('DROP INDEX "%s"', indexName);
     return this.runSql(sql).nodeify(callback);
   },
-
   addForeignKey: function() {
     throw new Error('not implemented');
   },
