@@ -220,11 +220,11 @@ var Base = Class.extend({
     }
 
     if(typeof(this._applyExtensions) === 'function') {
-      extensions = this._applyExtensions(options);
+      extensions = this._applyExtensions(options, tableName);
     }
 
     if(typeof(this._applyTableOptions) === 'function') {
-      tableOptions = this._applyTableOptions(options);
+      tableOptions = this._applyTableOptions(options, tableName);
     }
 
     var sql = util.format('CREATE TABLE %s %s (%s%s%s) %s', ifNotExistsSql,
@@ -270,7 +270,7 @@ var Base = Class.extend({
     var self = this;
 
     if(typeof(this._applyAddColumnExtension) === 'function') {
-      extensions = this._applyAddColumnExtension(def);
+      extensions = this._applyAddColumnExtension(def, tableName, columnName);
     }
 
     var sql = util.format('ALTER TABLE %s ADD COLUMN %s %s',
