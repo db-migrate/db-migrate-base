@@ -161,6 +161,14 @@ var Base = Class.extend({
     this.createTable(this.internals.seedTable, options, callback);
   },
 
+  _handleMultiPrimaryKeys: function(primaryKeyColumns) {
+
+    return util.format(', PRIMARY KEY (%s)',
+      this.quoteDDLArr(primaryKeyColumns.map(function(value) {
+        return value.name;
+      })).join(', '));
+  },
+
   createTable: function(tableName, options, callback) {
     log.verbose('creating table:', tableName);
     var columnSpecs = options;
@@ -186,16 +194,17 @@ var Base = Class.extend({
       var columnSpec = this.normalizeColumnSpec(columnSpecs[columnName]);
       columnSpecs[columnName] = columnSpec;
       if (columnSpec.primaryKey) {
-        primaryKeyColumns.push(columnName);
+        primaryKeyColumns.push({ spec: columnSpec, name: columnName });
       }
     }
 
     var pkSql = '';
     if (primaryKeyColumns.length > 1) {
-      pkSql = util.format(', PRIMARY KEY (%s)',
-        this.quoteDDLArr(primaryKeyColumns).join(', '));
+      pkSql = this._handleMultiPrimaryKeys(primaryKeyColumns);
 
     } else {
+
+      primaryKeyColumns[0] = primaryKeyColumns[0].name;
       columnDefOptions.emitPrimaryKey = true;
     }
 
