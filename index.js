@@ -228,7 +228,7 @@ var Base = Class.extend({
     }
 
     var sql = util.format('CREATE TABLE %s %s (%s%s%s) %s', ifNotExistsSql,
-      this.escapeDDL(tableName), columnDefs.join(', '), extensions, tableOptions, pkSql);
+      this.escapeDDL(tableName), columnDefs.join(', '), extensions, pkSql, tableOptions);
 
     return this.runSql(sql)
     .then(function()
