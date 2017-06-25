@@ -200,7 +200,7 @@ var Base = Class.extend({
     }
 
     var columnDefs = [];
-    var foreignKeys = [];
+    var callbacks = [];
     var extensions = '';
     var tableOptions = '';
 
@@ -209,8 +209,14 @@ var Base = Class.extend({
       var constraint = this.createColumnDef(columnName, columnSpec, columnDefOptions, tableName);
 
       columnDefs.push(constraint.constraints);
+
+      // check foreignKey for backward compatiable
       if (constraint.foreignKey)
-        foreignKeys.push(constraint.foreignKey);
+        callbacks.push(constraint.foreignKey);
+      if (constraint.callbacks) {
+        // support multiple callbacks
+        callbacks = callbacks.concat(constraint.callbacks)
+      }
     }
 
     if(typeof(this._applyExtensions) === 'function') {
@@ -227,7 +233,7 @@ var Base = Class.extend({
     return this.runSql(sql)
     .then(function()
     {
-        return this.recurseCallbackArray(foreignKeys);
+        return this.recurseCallbackArray(callbacks);
     }.bind(this)).nodeify(callback);
   },
 
@@ -261,6 +267,7 @@ var Base = Class.extend({
     var def = this.createColumnDef(columnName,
       this.normalizeColumnSpec(columnSpec), {}, tableName);
     var extensions = '';
+    var self = this;
 
     if(typeof(this._applyAddColumnExtension) === 'function') {
       extensions = this._applyAddColumnExtension(def);
@@ -272,10 +279,10 @@ var Base = Class.extend({
     return this.runSql(sql)
     .then(function()
     {
+      var callbacks = def.callbacks || [];
       if(def.foreignKey)
-        return def.foreignKey();
-      else
-        return Promise.resolve();
+        callbacks.push(def.foreignKey)
+      return self.recurseCallbackArray(callbacks);
     }).nodeify(callback);
   },
 
