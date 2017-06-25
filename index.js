@@ -197,6 +197,8 @@ var Base = Class.extend({
 
     var columnDefs = [];
     var foreignKeys = [];
+    var extensions = [];
+    var tableOptions = '';
 
     for (var columnName in columnSpecs) {
       var columnSpec = columnSpecs[columnName];
@@ -207,8 +209,16 @@ var Base = Class.extend({
         foreignKeys.push(constraint.foreignKey);
     }
 
-    var sql = util.format('CREATE TABLE %s %s (%s%s)', ifNotExistsSql,
-      this.escapeDDL(tableName), columnDefs.join(', '), pkSql);
+    if(typeof(this._applyExtensions) === 'function') {
+      extensions = this._applyExtensions(options);
+    }
+
+    if(typeof(this._applyTableOptions) === 'function') {
+      tableOptions = this._applyTableOptions(options);
+    }
+
+    var sql = util.format('CREATE TABLE %s %s (%s%s%s) %', ifNotExistsSql,
+      this.escapeDDL(tableName), columnDefs.join(', '), extensions.join(', '), tableOptions, pkSql);
 
     return this.runSql(sql)
     .then(function()
@@ -246,8 +256,14 @@ var Base = Class.extend({
 
     var def = this.createColumnDef(columnName,
       this.normalizeColumnSpec(columnSpec), {}, tableName);
-    var sql = util.format('ALTER TABLE %s ADD COLUMN %s',
-      this.escapeDDL(tableName), def.constraints);
+    var extensions = '';
+
+    if(typeof(this._applyAddColumnExtension)) {
+      extensions = this._applyAddColumnExtension(def);
+    }
+
+    var sql = util.format('ALTER TABLE %s ADD COLUMN %s %s',
+      this.escapeDDL(tableName), def.constraints, extensions);
 
     return this.runSql(sql)
     .then(function()
