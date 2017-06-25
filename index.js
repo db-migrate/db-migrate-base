@@ -258,7 +258,7 @@ var Base = Class.extend({
       this.normalizeColumnSpec(columnSpec), {}, tableName);
     var extensions = '';
 
-    if(typeof(this._applyAddColumnExtension)) {
+    if(typeof(this._applyAddColumnExtension) === 'function') {
       extensions = this._applyAddColumnExtension(def);
     }
 
