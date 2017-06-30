@@ -201,9 +201,7 @@ var Base = Class.extend({
     var pkSql = '';
     if (primaryKeyColumns.length > 1) {
       pkSql = this._handleMultiPrimaryKeys(primaryKeyColumns);
-
-    } else {
-
+    } else if(primaryKeyColumns.length === 1){
       primaryKeyColumns[0] = primaryKeyColumns[0].name;
       columnDefOptions.emitPrimaryKey = true;
     }
