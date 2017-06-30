@@ -199,13 +199,11 @@ var Base = Class.extend({
     }
 
     var pkSql = '';
-    if (primaryKeyColumns.length) {
-      if (primaryKeyColumns.length > 1) {
-        pkSql = this._handleMultiPrimaryKeys(primaryKeyColmuns);
-      } else {
-        primaryKeyColumns[0] = primaryKeyColumns[0].name;
-        columnDefOptions.emitPrimaryKey = true;
-      }
+    if (primaryKeyColumns.length > 1) {
+      pkSql = this._handleMultiPrimaryKeys(primaryKeyColumns);
+    } else if(primaryKeyColumns.length === 1){
+      primaryKeyColumns[0] = primaryKeyColumns[0].name;
+      columnDefOptions.emitPrimaryKey = true;
     }
 
     var columnDefs = [];
