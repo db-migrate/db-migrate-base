@@ -340,11 +340,11 @@ var Base = Class.extend({
 
     var columnNameArray = {};
 
-    if( arguments.length > 3 ) {
+    if( arguments.length > 3 || Array.isArray(callback)) {
 
       columnNameArray = valueArray;
       valueArray = callback;
-      callback = arguments[3];
+      callback = arguments[3] ? arguments[3] : throw;
     }
     else {
 
