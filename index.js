@@ -344,7 +344,6 @@ var Base = Class.extend({
 
       columnNameArray = valueArray;
       valueArray = callback;
-      callback = arguments[3] ? arguments[3] : throw;
     }
     else {
 
@@ -363,7 +362,12 @@ var Base = Class.extend({
     }
 
     if (columnNameArray.length !== valueArray.length) {
-      return callback(new Error('The number of columns does not match the number of values.'));
+      var error = new Error('The number of columns does not match the number of values.');
+      if (typeof callback === 'function') {
+        return callback(error);
+      } else {
+        throw error;
+      }
     }
 
     var sql = util.format('INSERT INTO %s ', this.escapeDDL(tableName));
