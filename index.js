@@ -43,10 +43,17 @@ var Base = Class.extend({
   },
 
   _prepareSpec: function(columnName, spec, options, tableName) {
-    if (spec.defaultValue.raw) {
-      spec.defaultValue.prep = spec.defaultValue.raw;
-    } else if (spec.defaultValue.special) {
-      this._translateSpecialDefaultValues(spec, options, tableName, columnName);
+    if (spec.defaultValue) {
+      if (spec.defaultValue.raw) {
+        spec.defaultValue.prep = spec.defaultValue.raw;
+      } else if (spec.defaultValue.special) {
+        this._translateSpecialDefaultValues(
+          spec,
+          options,
+          tableName,
+          columnName
+        );
+      }
     }
   },
 
