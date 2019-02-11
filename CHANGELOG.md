@@ -1,3 +1,13 @@
+<a name="1.6.1"></a>
+## [1.6.1](https://github.com/db-migrate/db-migrate-base/compare/v1.6.0...v1.6.1) (2019-02-11)
+
+
+### Bug Fixes
+
+* **bug:** wrong order for preparing spec ([a15eaad](https://github.com/db-migrate/db-migrate-base/commit/a15eaad))
+
+
+
 <a name="1.6.0"></a>
 # [1.6.0](https://github.com/db-migrate/db-migrate-base/compare/v1.5.4...v1.6.0) (2019-02-11)
 
