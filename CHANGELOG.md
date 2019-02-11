@@ -1,3 +1,13 @@
+<a name="1.6.3"></a>
+## [1.6.3](https://github.com/db-migrate/db-migrate-base/compare/v1.6.2...v1.6.3) (2019-02-11)
+
+
+### Bug Fixes
+
+* **bug:** add column has no def options ([2963dd0](https://github.com/db-migrate/db-migrate-base/commit/2963dd0))
+
+
+
 <a name="1.6.2"></a>
 ## [1.6.2](https://github.com/db-migrate/db-migrate-base/compare/v1.6.1...v1.6.2) (2019-02-11)
 
