@@ -28,6 +28,28 @@ var Base = Class.extend({
     throw new Error('not implemented');
   },
 
+  _translateSpecialDefaultValues: function(
+    spec,
+    options,
+    tableName,
+    columnName
+  ) {
+    spec.defaultValue.prep = null;
+    log.warn(
+      'special default value ' +
+        spec.defaultvalue.special +
+        ' is not supported by your driver. Setting to no defaultvalue instead.'
+    );
+  },
+
+  _prepareSpec: function(spec, options, tableName, columnName) {
+    if (spec.defaultValue.raw) {
+      spec.defaultValue.prep = spec.defaultValue.raw;
+    } else if (spec.defaultValue.special) {
+      this._translateSpecialDefaultValues(spec, options, tableName, columnName);
+    }
+  },
+
   mapDataType: function(str) {
     switch (str) {
       case type.STRING:
@@ -233,6 +255,7 @@ var Base = Class.extend({
 
     for (var columnName in columnSpecs) {
       var columnSpec = columnSpecs[columnName];
+      this._prepareSpec(columnName, columnSpec, columnDefOptions, tableName);
       var constraint = this.createColumnDef(
         columnName,
         columnSpec,
@@ -303,9 +326,11 @@ var Base = Class.extend({
   },
 
   addColumn: function(tableName, columnName, columnSpec, callback) {
+    var columnSpec = this.normalizeColumnSpec(columnSpec)
+    this._prepareSpec(columnName, columnSpec, columnDefOptions, tableName);
     var def = this.createColumnDef(
       columnName,
-      this.normalizeColumnSpec(columnSpec),
+      columnSpec,
       {},
       tableName
     );
