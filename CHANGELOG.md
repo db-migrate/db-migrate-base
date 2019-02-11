@@ -1,3 +1,13 @@
+<a name="1.6.0"></a>
+# [1.6.0](https://github.com/db-migrate/db-migrate-base/compare/v1.5.4...v1.6.0) (2019-02-11)
+
+
+### Features
+
+* **defaultValue:** add advanced handling for defaultValues ([0296b9e](https://github.com/db-migrate/db-migrate-base/commit/0296b9e))
+
+
+
 <a name="1.5.4"></a>
 ## [1.5.4](https://github.com/db-migrate/db-migrate-base/compare/v1.5.3...v1.5.4) (2019-01-28)
 
