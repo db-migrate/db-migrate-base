@@ -1,3 +1,13 @@
+<a name="1.6.2"></a>
+## [1.6.2](https://github.com/db-migrate/db-migrate-base/compare/v1.6.1...v1.6.2) (2019-02-11)
+
+
+### Bug Fixes
+
+* **bug:** check for defaultValue existence first ([18338bc](https://github.com/db-migrate/db-migrate-base/commit/18338bc))
+
+
+
 <a name="1.6.1"></a>
 ## [1.6.1](https://github.com/db-migrate/db-migrate-base/compare/v1.6.0...v1.6.1) (2019-02-11)
 
