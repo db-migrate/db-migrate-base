@@ -42,7 +42,7 @@ var Base = Class.extend({
     );
   },
 
-  _prepareSpec: function(spec, options, tableName, columnName) {
+  _prepareSpec: function(columnName, spec, options, tableName) {
     if (spec.defaultValue.raw) {
       spec.defaultValue.prep = spec.defaultValue.raw;
     } else if (spec.defaultValue.special) {
@@ -326,14 +326,9 @@ var Base = Class.extend({
   },
 
   addColumn: function(tableName, columnName, columnSpec, callback) {
-    var columnSpec = this.normalizeColumnSpec(columnSpec)
+    var columnSpec = this.normalizeColumnSpec(columnSpec);
     this._prepareSpec(columnName, columnSpec, columnDefOptions, tableName);
-    var def = this.createColumnDef(
-      columnName,
-      columnSpec,
-      {},
-      tableName
-    );
+    var def = this.createColumnDef(columnName, columnSpec, {}, tableName);
     var extensions = '';
     var self = this;
 
