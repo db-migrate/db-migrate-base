@@ -787,9 +787,8 @@ var Base = Class.extend({
    */
   remove: function (table, ids, callback) {
     var sql = 'DELETE FROM ' + this._escapeDDL + table + this._escapeDDL;
-    var searchClause = '';
 
-    return this.runSql(sql + this.buildWhereClause(ids)).nodeify(callback);
+    return this.runSql(sql + ' ' + this.buildWhereClause(ids)).nodeify(callback);
   },
 
   /**
