@@ -1,3 +1,13 @@
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/db-migrate/db-migrate-base/compare/v1.6.3...v2.0.0) (2019-05-16)
+
+
+### Features
+
+* **methods:** add new migrator methods ([1783a66](https://github.com/db-migrate/db-migrate-base/commit/1783a66))
+
+
+
 <a name="1.6.3"></a>
 ## [1.6.3](https://github.com/db-migrate/db-migrate-base/compare/v1.6.2...v1.6.3) (2019-02-11)
 
