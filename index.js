@@ -517,11 +517,11 @@ var Base = Class.extend({
   update: function (tableName, valueArray, ids, callback) {
     var columnNameArray = {};
 
-    if (arguments > 4 && arguments[1].length !== arguments[2].length) {
+    if (arguments.length > 4 && arguments[1].length !== arguments[2].length) {
       return callback(
         new Error('The number of columns does not match the number of values.')
       );
-    } else if (arguments > 4) {
+    } else if (arguments.length > 4) {
       columnNameArray = valueArray;
       valueArray = ids;
       ids = callback;
@@ -932,7 +932,7 @@ var Base = Class.extend({
 
   escape: function (str) {
     if (this._escapeString === "'") return str.replace(/'/g, "''");
-    else return str.replace(/"/g, '"');
+    else return str.replace(/"/g, '"""');
   },
 
   escapeString: function (str) {
