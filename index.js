@@ -122,9 +122,8 @@ var Base = Class.extend({
   },
 
   recurseCallbackArray: function (foreignKeys, callback) {
-    var self = this,
-      fkFunc,
-      promises = [];
+    var fkFunc;
+    var promises = [];
 
     while ((fkFunc = foreignKeys.pop())) {
       promises.push(Promise.resolve(fkFunc()));
@@ -787,7 +786,7 @@ var Base = Class.extend({
    */
   remove: function (table, ids, callback) {
     var sql = 'DELETE FROM ' + this._escapeDDL + table + +this._escapeDDL;
-    var searchClause = '';
+    // var searchClause = '';
 
     return this.runSql(sql + this.buildWhereClause(ids)).nodeify(callback);
   },
