@@ -683,7 +683,8 @@ var Base = Class.extend({
       this._escapeDDL +
       table +
       this._escapeDDL +
-      ' ORDER BY run_on DESC, name DESC';
+      ` ORDER BY ${this.escapeDDL('run_on')} DESC,
+      ${this.escapeDDL('name')} DESC`;
     return this.allAsync(sql);
   },
 
@@ -693,7 +694,7 @@ var Base = Class.extend({
       this._escapeDDL +
       table +
       this._escapeDDL +
-      ' WHERE key = ?';
+      ` WHERE ${this.escapeDDL('key')} = ?`;
     return this.allAsync(sql, [key]).then(([row]) => row);
   },
 
@@ -743,7 +744,7 @@ var Base = Class.extend({
       this._escapeDDL +
       table +
       this._escapeDDL +
-      ' WHERE key = ?';
+      ` WHERE ${this.escapeDDL('key')} = ?`;
     return this.runSql(sql, [key]);
   },
 
