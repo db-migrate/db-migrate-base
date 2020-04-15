@@ -335,6 +335,8 @@ var Base = Class.extend({
     return this.runSql(sql)
       .then(
         function () {
+          if (this._dbmControl === true) this._counter.signal();
+
           return this.recurseCallbackArray(callbacks);
         }.bind(this)
       )
@@ -386,6 +388,8 @@ var Base = Class.extend({
 
     return this.runSql(sql)
       .then(function () {
+        if (this._dbmControl === true) this._counter.signal();
+
         var callbacks = def.callbacks || [];
         if (def.foreignKey) callbacks.push(def.foreignKey);
         return self.recurseCallbackArray(callbacks);
