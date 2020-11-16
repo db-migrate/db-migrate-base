@@ -8,7 +8,7 @@ var Promise = require('bluebird');
 var internals = {};
 
 var Base = Class.extend({
-  init: function (intern) {
+  init: function(intern) {
     this._escapeDDL = this._escapeDDL || '"';
     this._escapeString = this._escapeString || "'";
 
@@ -24,11 +24,11 @@ var Base = Class.extend({
     }
   },
 
-  close: function () {
+  close: function() {
     throw new Error('not implemented');
   },
 
-  _translateSpecialDefaultValues: function (
+  _translateSpecialDefaultValues: function(
     spec,
     options,
     tableName,
@@ -42,7 +42,7 @@ var Base = Class.extend({
     );
   },
 
-  _prepareSpec: function (columnName, spec, options, tableName) {
+  _prepareSpec: function(columnName, spec, options, tableName) {
     if (spec.defaultValue) {
       if (spec.defaultValue.raw) {
         spec.defaultValue.prep = spec.defaultValue.raw;
@@ -57,7 +57,7 @@ var Base = Class.extend({
     }
   },
 
-  mapDataType: function (str) {
+  mapDataType: function(str) {
     switch (str) {
       case type.STRING:
         return 'VARCHAR';
@@ -94,34 +94,34 @@ var Base = Class.extend({
     }
   },
 
-  truncate: function (tableName, callback) {
+  truncate: function(tableName, callback) {
     return this.runSql(
       'TRUNCATE ' + this._escapeDDL + tableName + this._escapeDDL
     ).nodeify(callback);
   },
 
-  checkDBMS: function (dbms, callback) {
+  checkDBMS: function(dbms, callback) {
     if (this.dbms === dbms) return Promise.resolve(dbms).nodeify(callback);
     else return Promise.reject('dbms does not match');
   },
 
-  createDatabase: function () {
+  createDatabase: function() {
     throw new Error('not implemented');
   },
 
-  showDatabase: function () {
+  showDatabase: function() {
     throw new Error('not implemented');
   },
 
-  switchDatabase: function () {
+  switchDatabase: function() {
     throw new Error('not implemented');
   },
 
-  dropDatabase: function () {
+  dropDatabase: function() {
     throw new Error('not implemented');
   },
 
-  recurseCallbackArray: function (foreignKeys, callback) {
+  recurseCallbackArray: function(foreignKeys, callback) {
     var fkFunc;
     var promises = [];
 
@@ -132,7 +132,7 @@ var Base = Class.extend({
     return Promise.all(promises).nodeify(callback);
   },
 
-  bindForeignKey: function (tableName, columnName, fkOptions) {
+  bindForeignKey: function(tableName, columnName, fkOptions) {
     var self = this;
     var mapping = {};
 
@@ -140,7 +140,7 @@ var Base = Class.extend({
       mapping[columnName] = fkOptions.mapping;
     } else mapping = fkOptions.mapping;
 
-    return function (callback) {
+    return function(callback) {
       if (typeof callback === 'function') {
         self.addForeignKey(
           tableName,
@@ -162,7 +162,7 @@ var Base = Class.extend({
     };
   },
 
-  createColumnDef: function (name, spec, options) {
+  createColumnDef: function(name, spec, options) {
     name = this._escapeDDL + name + this._escapeDDL;
     var type = this.mapDataType(spec.type);
     var len = spec.length ? util.format('(%s)', spec.length) : '';
@@ -174,7 +174,7 @@ var Base = Class.extend({
     };
   },
 
-  _createList: function (table, opt = {}) {
+  _createList: function(table, opt = {}) {
     var options = {
       columns: {
         id: {
@@ -191,7 +191,7 @@ var Base = Class.extend({
     return this.createTable(table, options);
   },
 
-  _createKV: function (table, opt = { valueJson: false }) {
+  _createKV: function(table, opt = { valueJson: false }) {
     var options = {
       columns: {
         key: {
@@ -208,7 +208,7 @@ var Base = Class.extend({
     return this.createTable(table, options);
   },
 
-  createMigrationsTable: function (callback) {
+  createMigrationsTable: function(callback) {
     var options = {
       columns: {
         id: {
@@ -225,7 +225,7 @@ var Base = Class.extend({
     this.createTable(this.internals.migrationTable, options, callback);
   },
 
-  createSeedsTable: function (callback) {
+  createSeedsTable: function(callback) {
     var options = {
       columns: {
         id: {
@@ -242,18 +242,18 @@ var Base = Class.extend({
     this.createTable(this.internals.seedTable, options, callback);
   },
 
-  _handleMultiPrimaryKeys: function (primaryKeyColumns) {
+  _handleMultiPrimaryKeys: function(primaryKeyColumns) {
     return util.format(
       ', PRIMARY KEY (%s)',
       this.quoteDDLArr(
-        primaryKeyColumns.map(function (value) {
+        primaryKeyColumns.map(function(value) {
           return value.name;
         })
       ).join(', ')
     );
   },
 
-  createTable: function (tableName, options, callback) {
+  createTable: function(tableName, options, callback) {
     log.verbose('creating table:', tableName);
     var columnSpecs = options;
     var opts = {};
@@ -334,7 +334,7 @@ var Base = Class.extend({
 
     return this.runSql(sql)
       .then(
-        function () {
+        function() {
           if (this._dbmControl === true) this._counter.signal();
 
           return this.recurseCallbackArray(callbacks);
@@ -343,7 +343,7 @@ var Base = Class.extend({
       .nodeify(callback);
   },
 
-  dropTable: function (tableName, options, callback) {
+  dropTable: function(tableName, options, callback) {
     if (arguments.length < 3 && typeof options === 'function') {
       callback = options;
       options = {};
@@ -364,11 +364,11 @@ var Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  renameTable: function (tableName, newTableName, callback) {
+  renameTable: function(tableName, newTableName, callback) {
     throw new Error('not implemented');
   },
 
-  addColumn: function (tableName, columnName, columnSpec, callback) {
+  addColumn: function(tableName, columnName, columnSpec, callback) {
     var columnSpec = this.normalizeColumnSpec(columnSpec);
     this._prepareSpec(columnName, columnSpec, {}, tableName);
     var def = this.createColumnDef(columnName, columnSpec, {}, tableName);
@@ -387,7 +387,7 @@ var Base = Class.extend({
     );
 
     return this.runSql(sql)
-      .then(function () {
+      .then(function() {
         if (this._dbmControl === true) this._counter.signal();
 
         var callbacks = def.callbacks || [];
@@ -397,19 +397,19 @@ var Base = Class.extend({
       .nodeify(callback);
   },
 
-  removeColumn: function (tableName, columnName, callback) {
+  removeColumn: function(tableName, columnName, callback) {
     throw new Error('not implemented');
   },
 
-  renameColumn: function (tableName, oldColumnName, newColumnName, callback) {
+  renameColumn: function(tableName, oldColumnName, newColumnName, callback) {
     throw new Error('not implemented');
   },
 
-  changeColumn: function (tableName, columnName, columnSpec, callback) {
+  changeColumn: function(tableName, columnName, columnSpec, callback) {
     throw new Error('not implemented');
   },
 
-  quoteDDLArr: function (arr) {
+  quoteDDLArr: function(arr) {
     for (var i = 0; i < arr.length; ++i) {
       arr[i] = this._escapeDDL + arr[i] + this._escapeDDL;
     }
@@ -417,7 +417,7 @@ var Base = Class.extend({
     return arr;
   },
 
-  quoteArr: function (arr) {
+  quoteArr: function(arr) {
     for (var i = 0; i < arr.length; ++i) {
       arr[i] = this._escapeString + arr[i] + this._escapeString;
     }
@@ -425,7 +425,7 @@ var Base = Class.extend({
     return arr;
   },
 
-  addIndex: function (tableName, indexName, columns, unique, callback) {
+  addIndex: function(tableName, indexName, columns, unique, callback) {
     if (typeof unique === 'function') {
       callback = unique;
       unique = false;
@@ -445,7 +445,7 @@ var Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  insert: function (tableName, valueArray, callback) {
+  insert: function(tableName, valueArray, callback) {
     var columnNameArray = {};
 
     if (arguments.length > 3 || Array.isArray(callback)) {
@@ -516,7 +516,7 @@ var Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  update: function (tableName, valueArray, ids, callback) {
+  update: function(tableName, valueArray, ids, callback) {
     var columnNameArray = {};
 
     if (arguments.length > 4 && arguments[1].length !== arguments[2].length) {
@@ -567,7 +567,7 @@ var Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  lookup: function (tableName, column, id, callback) {
+  lookup: function(tableName, column, id, callback) {
     var sql =
       'SELECT ' +
       this.escapeDDL(column) +
@@ -576,12 +576,12 @@ var Base = Class.extend({
       ' ' +
       this.buildWhereClause(id);
 
-    return this.runSql(sql).then(function (row) {
+    return this.runSql(sql).then(function(row) {
       return row[0];
     });
   },
 
-  removeIndex: function (tableName, indexName, callback) {
+  removeIndex: function(tableName, indexName, callback) {
     if (arguments.length === 2 && typeof indexName === 'function') {
       callback = indexName;
       indexName = tableName;
@@ -593,15 +593,15 @@ var Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  addForeignKey: function () {
+  addForeignKey: function() {
     throw new Error('not implemented');
   },
 
-  removeForeignKey: function () {
+  removeForeignKey: function() {
     throw new Error('not implemented');
   },
 
-  normalizeColumnSpec: function (obj) {
+  normalizeColumnSpec: function(obj) {
     if (typeof obj === 'string') {
       return { type: obj };
     } else {
@@ -609,7 +609,7 @@ var Base = Class.extend({
     }
   },
 
-  _insertEntry: function (table, name) {
+  _insertEntry: function(table, name) {
     return this.runSql(
       'INSERT INTO ' +
         this.escapeDDL(table) +
@@ -622,7 +622,7 @@ var Base = Class.extend({
     );
   },
 
-  _insertKV: function (table, key, value) {
+  _insertKV: function(table, key, value) {
     return this.runSql(
       `INSERT INTO ${this.escapeDDL(table)}
         (${this.escapeDDL('key')}, ${this.escapeDDL('value')}, ${this.escapeDDL(
@@ -632,7 +632,7 @@ var Base = Class.extend({
     );
   },
 
-  _updateKV: function (table, key, value) {
+  _updateKV: function(table, key, value) {
     return this.runSql(
       `UPDATE ${this.escapeDDL(table)} SET ${this.escapeDDL('value')} = ?,
       ${this.escapeDDL('run_on')} = ? 
@@ -641,7 +641,16 @@ var Base = Class.extend({
     );
   },
 
-  addMigrationRecord: function (name, callback) {
+  _updateKVC: function(table, key, value, c, v) {
+    return this.runSql(
+      `UPDATE ${this.escapeDDL(table)} SET ${this.escapeDDL('value')} = ?,
+      ${this.escapeDDL('run_on')} = ? 
+      WHERE key = ? AND ${this.escapeDDL(c)} = ?`,
+      [value, new Date(), key, v]
+    );
+  },
+
+  addMigrationRecord: function(name, callback) {
     this.runSql(
       'INSERT INTO ' +
         this.escapeDDL(this.internals.migrationTable) +
@@ -655,7 +664,7 @@ var Base = Class.extend({
     );
   },
 
-  addSeedRecord: function (name, callback) {
+  addSeedRecord: function(name, callback) {
     this.runSql(
       'INSERT INTO ' +
         this.escapeDDL(this.internals.seedTable) +
@@ -669,19 +678,19 @@ var Base = Class.extend({
     );
   },
 
-  startMigration: function (cb) {
+  startMigration: function(cb) {
     return Promise.resolve().nodeify(cb);
   },
-  endMigration: function (cb) {
+  endMigration: function(cb) {
     return Promise.resolve().nodeify(cb);
   },
   // sql, params, callback
   // sql, callback
-  runSql: function () {
+  runSql: function() {
     throw new Error('not implemented');
   },
 
-  _getList: function (table) {
+  _getList: function(table) {
     var sql =
       'SELECT * FROM ' +
       this._escapeDDL +
@@ -692,7 +701,7 @@ var Base = Class.extend({
     return this.allAsync(sql);
   },
 
-  _getKV: function (table, key) {
+  _getKV: function(table, key) {
     var sql =
       'SELECT * FROM ' +
       this._escapeDDL +
@@ -707,7 +716,7 @@ var Base = Class.extend({
    *
    * @param callback
    */
-  allLoadedMigrations: function (callback) {
+  allLoadedMigrations: function(callback) {
     var sql =
       'SELECT * FROM ' +
       this._escapeDDL +
@@ -722,7 +731,7 @@ var Base = Class.extend({
    *
    * @param callback
    */
-  allLoadedSeeds: function (callback) {
+  allLoadedSeeds: function(callback) {
     var sql =
       'SELECT * FROM ' +
       this._escapeDDL +
@@ -732,7 +741,7 @@ var Base = Class.extend({
     return this.all(sql, callback);
   },
 
-  _deleteEntry: function (table, entry) {
+  _deleteEntry: function(table, entry) {
     var sql =
       'DELETE FROM ' +
       this._escapeDDL +
@@ -742,7 +751,17 @@ var Base = Class.extend({
     return this.runSql(sql, [entry]);
   },
 
-  _deleteKV: function (table, key) {
+  _deleteExpired: function(table, expiry) {
+    var sql =
+      'DELETE FROM ' +
+      this._escapeDDL +
+      table +
+      this._escapeDDL +
+      ' WHERE run_on <= ?';
+    return this.runSql(sql, [expiry]);
+  },
+
+  _deleteKV: function(table, key) {
     var sql =
       'DELETE FROM ' +
       this._escapeDDL +
@@ -757,7 +776,7 @@ var Base = Class.extend({
    *
    * @param migrationName   - The name of the migration to be deleted
    */
-  deleteMigration: function (migrationName, callback) {
+  deleteMigration: function(migrationName, callback) {
     var sql =
       'DELETE FROM ' +
       this._escapeDDL +
@@ -788,7 +807,7 @@ var Base = Class.extend({
    *
    * @return Promise(runSql)
    */
-  remove: function (table, ids, callback) {
+  remove: function(table, ids, callback) {
     var sql = 'DELETE FROM ' + this._escapeDDL + table + +this._escapeDDL;
     // var searchClause = '';
 
@@ -815,7 +834,7 @@ var Base = Class.extend({
    *
    * @return string
    */
-  buildWhereClause: function (ids) {
+  buildWhereClause: function(ids) {
     var searchClause = '';
 
     if (Array.isArray(ids) && typeof ids[0] !== 'object' && ids.length > 1) {
@@ -850,8 +869,8 @@ var Base = Class.extend({
         }
 
         (column.name = column.name || 'id'),
-        (column.operator = column.operator || '='),
-        (column.link = column.link || 'AND');
+          (column.operator = column.operator || '='),
+          (column.link = column.link || 'AND');
 
         if (!column.value) {
           return Promise.reject(
@@ -919,7 +938,7 @@ var Base = Class.extend({
    *
    * @param seedName   - The name of the seed to be deleted
    */
-  deleteSeed: function (seedName, callback) {
+  deleteSeed: function(seedName, callback) {
     var sql =
       'DELETE FROM ' +
       this._escapeDDL +
@@ -929,20 +948,20 @@ var Base = Class.extend({
     this.runSql(sql, [seedName], callback);
   },
 
-  all: function (sql, params, callback) {
+  all: function(sql, params, callback) {
     throw new Error('not implemented');
   },
 
-  escape: function (str) {
+  escape: function(str) {
     if (this._escapeString === "'") return str.replace(/'/g, "''");
     else return str.replace(/"/g, '"""');
   },
 
-  escapeString: function (str) {
+  escapeString: function(str) {
     return this._escapeString + this.escape(str) + this._escapeString;
   },
 
-  escapeDDL: function (str) {
+  escapeDDL: function(str) {
     return this._escapeDDL + str + this._escapeDDL;
   }
 });
