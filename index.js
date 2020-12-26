@@ -636,7 +636,7 @@ var Base = Class.extend({
     return this.runSql(
       `UPDATE ${this.escapeDDL(table)} SET ${this.escapeDDL('value')} = ?,
       ${this.escapeDDL('run_on')} = ? 
-      WHERE key = ?`,
+      WHERE ${this.escapeDDL('key')} = ?`,
       [value, new Date(), key]
     );
   },
@@ -645,7 +645,7 @@ var Base = Class.extend({
     return this.runSql(
       `UPDATE ${this.escapeDDL(table)} SET ${this.escapeDDL('value')} = ?,
       ${this.escapeDDL('run_on')} = ? 
-      WHERE key = ? AND ${this.escapeDDL(c)} = ?`,
+      WHERE ${this.escapeDDL('key')} = ? AND ${this.escapeDDL(c)} = ?`,
       [value, new Date(), key, v]
     );
   },
