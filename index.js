@@ -478,7 +478,7 @@ var Base = Class.extend({
     for (var index in columnNameArray) {
       columnNames += this.escapeDDL(columnNameArray[index]);
 
-      if (Array.isArray(valueArray) && typeof valueArray[0] === 'object') {
+      if (Array.isArray(valueArray) && typeof valueArray[0] === 'object' && valueArray[0] !== null) {
         for (var i = 0; i < valueArray.length; ++i) {
           values_part[i] = values_part[i] || '';
 
