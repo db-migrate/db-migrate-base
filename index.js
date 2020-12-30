@@ -487,6 +487,8 @@ var Base = Class.extend({
           } else {
             values_part[i] += valueArray[i][index];
           }
+          
+          values_part[i] += ',';
         }
       } else {
         if (typeof valueArray[index] === 'string') {
