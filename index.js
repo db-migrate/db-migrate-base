@@ -447,10 +447,12 @@ var Base = Class.extend({
 
   insert: function(tableName, valueArray, callback) {
     var columnNameArray = {};
+    var numValueColumns;
 
     if (arguments.length > 3 || Array.isArray(callback)) {
       columnNameArray = valueArray;
       valueArray = callback;
+      numValueColumns = Array.isArray(valueArray[0]) ? valueArray[0].length : valueArray.length;
     } else {
       var names;
       if (Array.isArray(valueArray)) {
@@ -462,9 +464,11 @@ var Base = Class.extend({
       for (var i = 0; i < names.length; ++i) {
         columnNameArray[names[i]] = names[i];
       }
+      
+      numValueColumns = valueArray.length;
     }
 
-    if (columnNameArray.length !== valueArray.length) {
+    if (columnNameArray.length !== numValueColumns) {
       return Promise.reject(
         new Error('The number of columns does not match the number of values.')
       ).nodeify(callback);
