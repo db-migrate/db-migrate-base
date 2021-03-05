@@ -451,6 +451,7 @@ var Base = Class.extend({
     if (arguments.length > 3 || Array.isArray(callback)) {
       columnNameArray = valueArray;
       valueArray = callback;
+      callback = arguments[arguments.length-1];
     } else {
       var names;
       if (Array.isArray(valueArray)) {
