@@ -88,7 +88,7 @@ var Base = Class.extend({
       case type.SMALLINT:
         return 'SMALLINT';
       default:
-        var unknownType = str.toUpperCase();
+        var unknownType = typeof str === 'string' ? str.toUpperCase() : str;
         log.warn('Using unknown data type', unknownType);
         return unknownType;
     }
