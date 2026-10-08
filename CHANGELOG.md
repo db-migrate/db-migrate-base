@@ -1,3 +1,22 @@
+# [2.4.0](https://github.com/db-migrate/db-migrate-base/compare/v2.3.1...v2.4.0) (2026-10-08)
+
+
+### Features
+
+* **state:** set run_on by the database clock ([6781064](https://github.com/db-migrate/db-migrate-base/commit/67810648b2cc2618c29cbb2848f6b725a6c8e6c8))
+
+
+### Upgrade notes
+
+* `run_on` of state, migration and seed records was written with the clock of the
+  migrating process so far, it is now set by `CURRENT_TIMESTAMP`. If the migrating
+  process ran in a different time zone than the database session and the column
+  stores no time zone (MySQL `DATETIME`, PostgreSQL `timestamp`), records written
+  shortly after the upgrade can sort before the last records written before it.
+  This window is as long as the time zone offset.
+
+
+
 <a name="2.0.0"></a>
 # [2.0.0](https://github.com/db-migrate/db-migrate-base/compare/v1.6.3...v2.0.0) (2019-05-16)
 
