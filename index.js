@@ -617,36 +617,40 @@ var Base = Class.extend({
         this.escapeDDL('name') +
         ', ' +
         this.escapeDDL('run_on') +
-        ') VALUES (?, ?)',
-      [name, new Date()]
+        ') VALUES (?, CURRENT_TIMESTAMP)',
+      [name]
     );
   },
 
+  /**
+   * run_on is always set by the database clock, the clocks of the
+   * processes running migrations may differ.
+   */
   _insertKV: function(table, key, value) {
     return this.runSql(
       `INSERT INTO ${this.escapeDDL(table)}
         (${this.escapeDDL('key')}, ${this.escapeDDL('value')}, ${this.escapeDDL(
         'run_on'
-      )}) VALUES (?, ?, ?)`,
-      [key, value, new Date()]
+      )}) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+      [key, value]
     );
   },
 
   _updateKV: function(table, key, value) {
     return this.runSql(
       `UPDATE ${this.escapeDDL(table)} SET ${this.escapeDDL('value')} = ?,
-      ${this.escapeDDL('run_on')} = ? 
+      ${this.escapeDDL('run_on')} = CURRENT_TIMESTAMP
       WHERE ${this.escapeDDL('key')} = ?`,
-      [value, new Date(), key]
+      [value, key]
     );
   },
 
   _updateKVC: function(table, key, value, c, v) {
     return this.runSql(
       `UPDATE ${this.escapeDDL(table)} SET ${this.escapeDDL('value')} = ?,
-      ${this.escapeDDL('run_on')} = ? 
+      ${this.escapeDDL('run_on')} = CURRENT_TIMESTAMP
       WHERE ${this.escapeDDL('key')} = ? AND ${this.escapeDDL(c)} = ?`,
-      [value, new Date(), key, v]
+      [value, key, v]
     );
   },
 
@@ -658,8 +662,8 @@ var Base = Class.extend({
         this.escapeDDL('name') +
         ', ' +
         this.escapeDDL('run_on') +
-        ') VALUES (?, ?)',
-      [name, new Date()],
+        ') VALUES (?, CURRENT_TIMESTAMP)',
+      [name],
       callback
     );
   },
@@ -672,8 +676,8 @@ var Base = Class.extend({
         this.escapeDDL('name') +
         ', ' +
         this.escapeDDL('run_on') +
-        ') VALUES (?, ?)',
-      [name, new Date()],
+        ') VALUES (?, CURRENT_TIMESTAMP)',
+      [name],
       callback
     );
   },
