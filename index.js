@@ -1039,7 +1039,7 @@ var Base = Class.extend({
 
   escape: function(str) {
     if (this._escapeString === "'") return str.replace(/'/g, "''");
-    else return str.replace(/"/g, '"""');
+    else return str.replace(/"/g, '""');
   },
 
   escapeString: function(str) {
