@@ -1,3 +1,12 @@
+## [2.5.1](https://github.com/db-migrate/db-migrate-base/compare/v2.5.0...v2.5.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* unknown types keep the case of their quoted parts ([4c50f42](https://github.com/db-migrate/db-migrate-base/commit/4c50f4206066be372f55d4df3190a97dfd1c1ea7)), closes [#37](https://github.com/db-migrate/db-migrate-base/issues/37)
+
+
+
 # [2.5.0](https://github.com/db-migrate/db-migrate-base/compare/v2.4.2...v2.5.0) (2026-10-09)
 
 
