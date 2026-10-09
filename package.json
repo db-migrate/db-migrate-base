@@ -1,6 +1,6 @@
 {
   "name": "db-migrate-base",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "db-migrate base driver",
   "main": "index.js",
   "scripts": {
