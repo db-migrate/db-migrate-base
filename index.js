@@ -88,7 +88,13 @@ var Base = Class.extend({
       case type.SMALLINT:
         return 'SMALLINT';
       default:
-        var unknownType = typeof str === 'string' ? str.toUpperCase() : str;
+        // upper case except quoted parts, the values of an enum('a', 'b')
+        var unknownType =
+          typeof str === 'string'
+            ? str.replace(/('(?:[^']|'')*')|[^']+/g, function(part, quoted) {
+                return quoted ? part : part.toUpperCase();
+              })
+            : str;
         log.warn('Using unknown data type', unknownType);
         return unknownType;
     }

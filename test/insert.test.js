@@ -4,7 +4,7 @@ const Base = require('..');
 
 const Driver = Base.extend({
   init: function () {
-    this._super({ mod: { log: {}, type: {} } });
+    this._super({ mod: { log: { warn: () => {} }, type: {} } });
     this.calls = [];
   },
 
@@ -91,4 +91,10 @@ test('rows not matching the columns', async () => {
 
 test('callback', (t, done) => {
   new Driver().insert('t', { a: 1 }, err => done(err));
+});
+
+test('unknown types keep their quoted parts', () => {
+  const db = new Driver();
+  assert.strictEqual(db.mapDataType("enum('a', 'B', 'it''s')"), "ENUM('a', 'B', 'it''s')");
+  assert.strictEqual(db.mapDataType('tinyint'), 'TINYINT');
 });
