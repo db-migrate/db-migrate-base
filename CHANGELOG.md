@@ -1,3 +1,17 @@
+# [2.5.0](https://github.com/db-migrate/db-migrate-base/compare/v2.4.2...v2.5.0) (2026-10-09)
+
+
+### Bug Fixes
+
+* escape strings quoted with double quotes by doubling them ([7b17a49](https://github.com/db-migrate/db-migrate-base/commit/7b17a49acf06a203f7aa659c43c40ee917a66b17)), closes [#5](https://github.com/db-migrate/db-migrate-base/issues/5)
+
+
+### Features
+
+* insert objects and several rows, with the values as parameters ([cee55e6](https://github.com/db-migrate/db-migrate-base/commit/cee55e6010efbd99b346236088d9bb3193a557e0)), closes [#10](https://github.com/db-migrate/db-migrate-base/issues/10) [#23](https://github.com/db-migrate/db-migrate-base/issues/23) [#26](https://github.com/db-migrate/db-migrate-base/issues/26) [#27](https://github.com/db-migrate/db-migrate-base/issues/27) [#28](https://github.com/db-migrate/db-migrate-base/issues/28)
+
+
+
 ## [2.4.2](https://github.com/db-migrate/db-migrate-base/compare/v2.4.1...v2.4.2) (2026-10-09)
 
 
