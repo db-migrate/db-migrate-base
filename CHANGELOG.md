@@ -1,3 +1,12 @@
+## [2.4.1](https://github.com/db-migrate/db-migrate-base/compare/v2.4.0...v2.4.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* drop unsupported special default values, remove from tables ([9e05b31](https://github.com/db-migrate/db-migrate-base/commit/9e05b312409113803f4970d8fe7de5f9d68f3229))
+
+
+
 # [2.4.0](https://github.com/db-migrate/db-migrate-base/compare/v2.3.1...v2.4.0) (2026-10-08)
 
 
