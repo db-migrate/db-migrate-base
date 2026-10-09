@@ -445,75 +445,156 @@ var Base = Class.extend({
     return this.runSql(sql).nodeify(callback);
   },
 
-  insert: function(tableName, valueArray, callback) {
-    var columnNameArray = {};
+  /**
+   * Inserts rows, in one of these forms:
+   *
+   *   insert(table, ['a', 'b'], [1, 2])            columns and one row
+   *   insert(table, ['a', 'b'], [[1, 2], [3, 4]])  columns and several rows
+   *   insert(table, { a: 1, b: 2 })                one row
+   *   insert(table, [{ a: 1 }, { a: 2, b: 3 }])    several rows
+   *   insert(table, { columns: ['a', 'b'], data: [1, 2, 3, 4] })
+   *
+   * The values are passed as parameters, objects and arrays as JSON. Rows
+   * with different columns are inserted per set of columns, many rows in
+   * batches, so no statement exceeds the parameters a database allows.
+   */
+  insert: function(tableName, ...args) {
+    var callback =
+      typeof args[args.length - 1] === 'function' ? args.pop() : undefined;
+    var groups;
 
-    if (arguments.length > 3 || Array.isArray(callback)) {
-      columnNameArray = valueArray;
-      valueArray = callback;
+    try {
+      groups = this._insertGroups(args);
+    } catch (err) {
+      return Promise.reject(err).nodeify(callback);
+    }
+
+    var self = this;
+    return Promise.mapSeries(groups, function(group) {
+      return Promise.mapSeries(self._insertBatches(group), function(rows) {
+        return self.runSql(
+          util.format(
+            'INSERT INTO %s (%s) VALUES %s',
+            self.escapeDDL(tableName),
+            group.columns
+              .map(function(column) {
+                return self.escapeDDL(column);
+              })
+              .join(', '),
+            rows
+              .map(function(row) {
+                return '(' + row.map(function() {
+                  return '?';
+                }).join(', ') + ')';
+              })
+              .join(', ')
+          ),
+          [].concat.apply(
+            [],
+            rows.map(function(row) {
+              return row.map(self._insertValue);
+            })
+          )
+        );
+      });
+    })
+      .then(function() {})
+      .nodeify(callback);
+  },
+
+  // the parameters of one statement, below the lowest limit of the drivers
+  _insertParams: 999,
+
+  _insertValue: function(value) {
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !(value instanceof Date) &&
+      !Buffer.isBuffer(value)
+    ) {
+      return JSON.stringify(value);
+    }
+
+    return value === undefined ? null : value;
+  },
+
+  _insertGroups: function(args) {
+    var columns;
+    var rows;
+
+    if (args.length >= 2) {
+      // columns and the values of one or several rows
+      columns = args[0];
+      rows =
+        !args[1].length || Array.isArray(args[1][0]) ? args[1] : [args[1]];
+    } else if (
+      args[0] &&
+      !Array.isArray(args[0]) &&
+      Array.isArray(args[0].columns)
+    ) {
+      // columns and the values of all rows one after another
+      columns = args[0].columns;
+      rows = [];
+      for (var i = 0; i < args[0].data.length; i += columns.length) {
+        rows.push(args[0].data.slice(i, i + columns.length));
+      }
+    } else if (args[0] && typeof args[0] === 'object') {
+      return this._groupObjects(
+        Array.isArray(args[0]) ? args[0] : [args[0]]
+      );
     } else {
-      var names;
-      if (Array.isArray(valueArray)) {
-        names = Object.keys(valueArray[0]);
-      } else {
-        names = Object.keys(valueArray);
-      }
-
-      for (var i = 0; i < names.length; ++i) {
-        columnNameArray[names[i]] = names[i];
-      }
+      throw new Error('insert needs the rows to insert');
     }
 
-    if (columnNameArray.length !== valueArray.length) {
-      return Promise.reject(
-        new Error('The number of columns does not match the number of values.')
-      ).nodeify(callback);
-    }
+    rows.forEach(function(row) {
+      if (!Array.isArray(row) || row.length !== columns.length) {
+        throw new Error(
+          'The number of columns does not match the number of values.'
+        );
+      }
+    });
 
-    var sql = util.format('INSERT INTO %s ', this.escapeDDL(tableName));
-    var columnNames = '(';
-    var values = 'VALUES ';
-    var values_part = [];
+    return rows.length ? [{ columns: columns, rows: rows }] : [];
+  },
 
-    for (var index in columnNameArray) {
-      columnNames += this.escapeDDL(columnNameArray[index]);
+  // rows as objects, grouped by their columns, in the order they come
+  _groupObjects: function(objects) {
+    var groups = {};
+    var order = [];
 
-      if (Array.isArray(valueArray) && typeof valueArray[0] === 'object') {
-        for (var i = 0; i < valueArray.length; ++i) {
-          values_part[i] = values_part[i] || '';
+    objects.forEach(function(object) {
+      var columns = Object.keys(object);
+      var key = JSON.stringify(columns);
 
-          if (typeof valueArray[i][index] === 'string') {
-            values_part[i] += this.escapeString(valueArray[i][index]);
-          } else {
-            values_part[i] += valueArray[i][index];
-          }
-        }
-      } else {
-        if (typeof valueArray[index] === 'string') {
-          values_part += this.escapeString(valueArray[index]);
-        } else {
-          values_part += valueArray[index];
-        }
-
-        values_part += ',';
+      if (!groups[key]) {
+        groups[key] = { columns: columns, rows: [] };
+        order.push(key);
       }
 
-      columnNames += ',';
+      groups[key].rows.push(
+        columns.map(function(column) {
+          return object[column];
+        })
+      );
+    });
+
+    return order.map(function(key) {
+      return groups[key];
+    });
+  },
+
+  _insertBatches: function(group) {
+    var size = Math.max(
+      1,
+      Math.floor(this._insertParams / Math.max(group.columns.length, 1))
+    );
+    var batches = [];
+
+    for (var i = 0; i < group.rows.length; i += size) {
+      batches.push(group.rows.slice(i, i + size));
     }
 
-    if (Array.isArray(valueArray) && typeof valueArray[0] === 'object') {
-      for (var i = 0; i < values_part.length; ++i) {
-        values += '(' + values_part[i].slice(0, -1) + '),';
-      }
-
-      values = values.slice(0, -1);
-    } else {
-      values += '(' + values_part.slice(0, -1) + ')';
-    }
-
-    sql += columnNames.slice(0, -1) + ') ' + values + ';';
-
-    return this.runSql(sql).nodeify(callback);
+    return batches;
   },
 
   update: function(tableName, valueArray, ids, callback) {
