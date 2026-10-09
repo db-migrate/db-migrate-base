@@ -1,3 +1,12 @@
+## [2.4.2](https://github.com/db-migrate/db-migrate-base/compare/v2.4.1...v2.4.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* log the column without a type instead of failing on it ([da5ad41](https://github.com/db-migrate/db-migrate-base/commit/da5ad411cbe6959fd9e36caced528097c8b4df14)), closes [#36](https://github.com/db-migrate/db-migrate-base/pull/36)
+
+
+
 ## [2.4.1](https://github.com/db-migrate/db-migrate-base/compare/v2.4.0...v2.4.1) (2026-10-09)
 
 
