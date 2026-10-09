@@ -34,12 +34,12 @@ var Base = Class.extend({
     tableName,
     columnName
   ) {
-    spec.defaultValue.prep = null;
     log.warn(
       'special default value ' +
-        spec.defaultvalue.special +
+        spec.defaultValue.special +
         ' is not supported by your driver. Setting to no defaultvalue instead.'
     );
+    delete spec.defaultValue;
   },
 
   _prepareSpec: function(columnName, spec, options, tableName) {
@@ -812,7 +812,7 @@ var Base = Class.extend({
    * @return Promise(runSql)
    */
   remove: function(table, ids, callback) {
-    var sql = 'DELETE FROM ' + this._escapeDDL + table + +this._escapeDDL;
+    var sql = 'DELETE FROM ' + this._escapeDDL + table + this._escapeDDL;
     // var searchClause = '';
 
     return this.runSql(sql + this.buildWhereClause(ids)).nodeify(callback);
